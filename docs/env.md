@@ -24,6 +24,8 @@
 | npm | 11.19.0 | |
 | VS Code | 1.141.0 | |
 
+VS Code 插件：`ms-python.python`、`ms-python.vscode-pylance`、`ms-toolsai.jupyter`（另自动带入 6 个依赖插件，如 debugpy、jupyter-renderers）。
+
 未安装、后续需要：Docker Desktop、Ollama。
 
 ## 3. 环境变量（用户级，已配置）
@@ -52,6 +54,12 @@
 | 装 uv 时报 `No space left on device` | C 盘 100GB 仅剩 0.05GB | 清理出约 9GB，并把缓存改道 E 盘 |
 | 清理脚本静默失败 | PowerShell 5.1 在中文 Windows 上按 GBK 读 `.ps1`，UTF-8 中文变乱码导致语法错误 | **`.ps1` 一律用纯 ASCII，或存成带 BOM 的 UTF-8** |
 | uv 报 "Failed to hardlink files" | 缓存与虚拟环境跨盘，无法硬链接 | 缓存改到 E 盘，与项目同盘后即可硬链接 |
+| git 报 `dubious ownership` | 沙箱进程以另一账户读写文件，git 认为仓库不属于当前用户 | 把项目目录加入例外：`git config --global --add safe.directory <项目绝对路径>` |
+| `code --install-extension` 卡死 5 分钟无输出 | 插件市场域名在本机网络下时通时断（同一域名一会 200、一会 18 秒超时） | 优先从 VS Code 界面装（`Ctrl+Shift+X`）；或下载 `.vsix` 本地装 |
+| 下载的 `.vsix` 报 "not a valid zip" | 市场返回 gzip 内容，下载命令未解压，文件头是 `1F 8B` 而非 `50 4B` | 下载时加 `--compressed` |
+| `git push` 报 `Failed to connect ... Could not connect to server` | 网络瞬时抖动（或代理客户端启动时正在重建路由），**不是操作错误** | 直接重敲 `git push`，推送是幂等的 |
+
+> 通用规律：**下载下来的文件打不开，先看文件头** —— `50 4B` = zip，`1F 8B` = gzip，`3C` = HTML（通常是错误页）。
 
 ## 5. 常用命令
 
@@ -67,3 +75,16 @@ deactivate                       # 退出虚拟环境
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
+
+## 6. git 报错速查表
+
+| 报错关键词 | 是什么问题 | 怎么办 |
+| --- | --- | --- |
+| `Failed to connect` / `Could not connect to server` / `timed out` | 网络问题 | 重敲一遍 |
+| `Authentication failed` / `Permission denied` | 登录凭据失效 | 重新授权 |
+| `rejected ... non-fast-forward` | 远程有你本地没有的提交 | 先 `git pull` 再 push |
+| `nothing to commit` | 无改动可提交 | 正常，不是错误 |
+| `dubious ownership` | 仓库归属不对 | 加 `safe.directory` |
+| `No space left on device` | 磁盘满了 | 清空间 |
+
+> 实测：本机**直连 GitHub 比走代理更快**（1.0s vs 1.7s），推送不必开代理；代理开着反而多一层不确定性。
