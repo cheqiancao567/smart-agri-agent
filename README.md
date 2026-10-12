@@ -70,6 +70,7 @@ Copy-Item .env.example .env
 | 日期 | 里程碑 | 做了什么 |
 | --- | --- | --- |
 | 2026-10-12 | M0 | 环境搭建完成（Python 3.12.10 / uv / Git / VS Code）；建立项目骨架、README 与 .gitignore；初始化 Git 仓库并推送到 GitHub 私有仓库 |
+2026年 10月13日
 
 ## 相关文档
 
