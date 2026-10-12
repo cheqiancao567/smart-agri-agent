@@ -65,6 +65,12 @@ Copy-Item .env.example .env
 - [ ] M6 部署与优化
 - [ ] M7 论文与答辩
 
+## 开发日志
+
+| 日期 | 里程碑 | 做了什么 |
+| --- | --- | --- |
+| 2026-10-12 | M0 | 环境搭建完成（Python 3.12.10 / uv / Git / VS Code）；建立项目骨架、README 与 .gitignore；初始化 Git 仓库并推送到 GitHub 私有仓库 |
+
 ## 相关文档
 
 | 文档 | 位置 |
