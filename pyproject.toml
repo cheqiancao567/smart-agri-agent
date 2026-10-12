@@ -1,0 +1,8 @@
+[project]
+name = "smart-agri-agent"
+version = "0.1.0"
+description = "智慧农业环境监测与决策智能体系统（毕业设计）"
+requires-python = ">=3.11"
+dependencies = []
+
+# 依赖随开发逐步加入，用 `uv add <包名>` 添加

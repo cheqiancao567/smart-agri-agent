@@ -1,0 +1,56 @@
+# ================= 虚拟环境 =================
+# 这一条最重要：虚拟环境里有几千个文件，绝不能进仓库
+.venv/
+venv/
+env/
+
+# ================= Python =================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ================= 密钥与本地配置 =================
+# 绝对不要提交 .env！里面有 API Key
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ================= 数据与模型（体积大）=================
+data/*
+!data/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+*.pt
+*.pth
+*.onnx
+checkpoints/
+chroma/
+*.faiss
+
+# ================= 前端 =================
+node_modules/
+.next/
+out/
+.turbo/
+
+# ================= 编辑器 / 系统 =================
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ================= 日志与临时文件 =================
+*.log
+logs/
+*.tmp
