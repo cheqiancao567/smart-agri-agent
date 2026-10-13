@@ -57,10 +57,9 @@ VS Code 插件：`ms-python.python`、`ms-python.vscode-pylance`、`ms-toolsai.j
 | git 报 `dubious ownership` | 沙箱进程以另一账户读写文件，git 认为仓库不属于当前用户 | 把项目目录加入例外：`git config --global --add safe.directory <项目绝对路径>` |
 | `code --install-extension` 卡死 5 分钟无输出 | 插件市场域名在本机网络下时通时断（同一域名一会 200、一会 18 秒超时） | 优先从 VS Code 界面装（`Ctrl+Shift+X`）；或下载 `.vsix` 本地装 |
 | 下载的 `.vsix` 报 "not a valid zip" | 市场返回 gzip 内容，下载命令未解压，文件头是 `1F 8B` 而非 `50 4B` | 下载时加 `--compressed` |
-| `git push` 报 `Failed to connect ... Could not connect to server` | 网络瞬时抖动（或代理客户端启动时正在重建路由），**不是操作错误** | 直接重敲 `git push`，推送是幂等的 |
+| `git push` 报 `Failed to connect ... Could not connect to server` | 网络瞬时抖动，**不是操作错误** | 直接重敲 `git push`，推送是幂等的 |
 | 下载 Ollama 安装包只有 3~11 KB/s | `ollama.com` 和 GitHub releases 在国内被限速（同一机器其他源可达 1~10 MB/s） | 改用国内 GitHub 加速镜像 `gh-proxy.com`，实测 **10.7 MB/s** 且支持断点续传 |
-| `ollama pull` 卡住不动 | 官方模型仓库 `registry.ollama.ai` 国内不可达（直连和代理均 45 秒超时） | 从 ModelScope 下 GGUF，用 Modelfile 本地导入（见第 7 节） |
-| 代理时通时断、后来完全连不上 | Clash Verge **主程序**没运行（只有 `clash-verge-service` 服务在跑，7892 端口没监听） | 打开 Clash Verge 主程序；或直接走直连 |
+| `ollama pull` 卡住不动 | 官方模型仓库 `registry.ollama.ai` 国内不可达（连接超时） | 从 ModelScope 下 GGUF，用 Modelfile 本地导入（见第 7 节） |
 
 > 通用规律：**下载下来的文件打不开，先看文件头** —— `50 4B` = zip，`1F 8B` = gzip，`3C` = HTML（通常是错误页）。
 
@@ -89,8 +88,6 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 | `nothing to commit` | 无改动可提交 | 正常，不是错误 |
 | `dubious ownership` | 仓库归属不对 | 加 `safe.directory` |
 | `No space left on device` | 磁盘满了 | 清空间 |
-
-> 实测：本机**直连 GitHub 比走代理更快**（1.0s vs 1.7s），推送不必开代理；代理开着反而多一层不确定性。
 
 ## 7. 本地大模型（Ollama）
 

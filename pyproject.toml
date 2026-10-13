@@ -8,8 +8,7 @@ dependencies = [
     "python-dotenv>=1.2.4",
 ]
 
-[[tool.uv.index]]
-url = "https://pypi.org/simple"
-default = true
-
+# 包源由系统环境变量决定（UV_DEFAULT_INDEX / PIP_INDEX_URL，当前指向清华镜像）。
+# 不在这里硬编码 index：换机器时改环境变量比改项目文件更方便，
+# 也不会出现「配置里写着 A、环境变量写着 B」的不一致。
 # 依赖随开发逐步加入，用 `uv add <包名>` 添加
