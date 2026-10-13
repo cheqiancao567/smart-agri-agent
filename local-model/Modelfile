@@ -1,0 +1,23 @@
+# Ollama 模型定义文件
+#
+# 用途：把从 ModelScope 下载的 GGUF 权重导入 Ollama，得到一个本地可用的 qwen2.5:3b。
+#
+# 导入命令：
+#     ollama create qwen2.5:3b -f local-model/Modelfile
+#
+# 为什么不用 `ollama pull qwen2.5:3b`：
+#     Ollama 官方模型仓库 registry.ollama.ai 在国内直连和代理都不可达（实测 45 秒超时）。
+#     所以改为从 ModelScope（魔搭）下载 GGUF，再本地导入——全程走国内线路，实测 14 MB/s。
+#
+# 注意：FROM 是绝对路径，换电脑后需要改成本机 GGUF 文件的实际位置。
+
+FROM E:\dev-cache\ollama\gguf\qwen2.5-3b-instruct-q4_k_m.gguf
+
+# 上下文长度：越大越能记住长对话，但越吃显存。4GB 显存的机器不宜调太大。
+PARAMETER num_ctx 4096
+
+# 温度：0 最保守稳定，1 最发散。做工程调试试用低一点。
+PARAMETER temperature 0.7
+
+# 这里刻意不写 SYSTEM —— 让调用方（代码里的 system 消息）自己控制人设，
+# 这样本地模型和云端 API 的对比才是公平的。

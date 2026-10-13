@@ -1,7 +1,7 @@
 # 环境记录
 
 > 换电脑、重装、或出问题时，照着这份记录就能复原。
-> 最后更新：2026-10-12
+> 最后更新：2026-10-13
 
 ## 1. 这台机器
 
@@ -10,7 +10,7 @@
 | 操作系统 | Windows | |
 | GPU | **NVIDIA RTX 3050 Laptop / 显存 4GB** | ⚠️ 设计文档假设的是 4060 8GB，**本地大模型需降级到 3B** |
 | 显卡驱动 | 581.42（CUDA 13.0） | |
-| C 盘 | 100GB 总量，可用 9.1GB | ⚠️ 系统盘很紧张 |
+| C 盘 | 100GB 总量，可用约 6.6GB | ⚠️ 系统盘很紧张，大文件一律放 E 盘 |
 | E 盘 | 477GB 总量，可用 455GB | **大文件全部放这里** |
 
 ## 2. 已安装的工具
@@ -26,7 +26,7 @@
 
 VS Code 插件：`ms-python.python`、`ms-python.vscode-pylance`、`ms-toolsai.jupyter`（另自动带入 6 个依赖插件，如 debugpy、jupyter-renderers）。
 
-未安装、后续需要：Docker Desktop、Ollama。
+未安装、后续需要：Docker Desktop。
 
 ## 3. 环境变量（用户级，已配置）
 
@@ -58,6 +58,9 @@ VS Code 插件：`ms-python.python`、`ms-python.vscode-pylance`、`ms-toolsai.j
 | `code --install-extension` 卡死 5 分钟无输出 | 插件市场域名在本机网络下时通时断（同一域名一会 200、一会 18 秒超时） | 优先从 VS Code 界面装（`Ctrl+Shift+X`）；或下载 `.vsix` 本地装 |
 | 下载的 `.vsix` 报 "not a valid zip" | 市场返回 gzip 内容，下载命令未解压，文件头是 `1F 8B` 而非 `50 4B` | 下载时加 `--compressed` |
 | `git push` 报 `Failed to connect ... Could not connect to server` | 网络瞬时抖动（或代理客户端启动时正在重建路由），**不是操作错误** | 直接重敲 `git push`，推送是幂等的 |
+| 下载 Ollama 安装包只有 3~11 KB/s | `ollama.com` 和 GitHub releases 在国内被限速（同一机器其他源可达 1~10 MB/s） | 改用国内 GitHub 加速镜像 `gh-proxy.com`，实测 **10.7 MB/s** 且支持断点续传 |
+| `ollama pull` 卡住不动 | 官方模型仓库 `registry.ollama.ai` 国内不可达（直连和代理均 45 秒超时） | 从 ModelScope 下 GGUF，用 Modelfile 本地导入（见第 7 节） |
+| 代理时通时断、后来完全连不上 | Clash Verge **主程序**没运行（只有 `clash-verge-service` 服务在跑，7892 端口没监听） | 打开 Clash Verge 主程序；或直接走直连 |
 
 > 通用规律：**下载下来的文件打不开，先看文件头** —— `50 4B` = zip，`1F 8B` = gzip，`3C` = HTML（通常是错误页）。
 
@@ -88,3 +91,83 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 | `No space left on device` | 磁盘满了 | 清空间 |
 
 > 实测：本机**直连 GitHub 比走代理更快**（1.0s vs 1.7s），推送不必开代理；代理开着反而多一层不确定性。
+
+## 7. 本地大模型（Ollama）
+
+| 项目 | 值 |
+| --- | --- |
+| 版本 | 0.40.3 |
+| 程序位置 | `E:\Programs\Ollama`（2852 MB，**装在 E 盘，不占 C 盘**） |
+| 服务地址 | `http://127.0.0.1:11434`（托盘程序自动拉起） |
+| 权重位置 | `E:\dev-cache\ollama`（由 `OLLAMA_MODELS` 决定；`C:\Users\<用户>\.ollama` 只有密钥文件，0 MB） |
+| 已装模型 | `qwen2.5:3b`（2.1 GB） |
+
+**模型是怎么装进来的（重要）**
+
+`ollama pull qwen2.5:3b` 在本机**用不了**——官方仓库国内不可达。改走这条路：
+
+```powershell
+# 1. 从国内 ModelScope 下载 GGUF 权重（实测 14 MB/s，2GB 约 2.5 分钟）
+curl.exe -L -C - -o "E:\dev-cache\ollama\gguf\qwen2.5-3b-instruct-q4_k_m.gguf" `
+  "https://modelscope.cn/models/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/master/qwen2.5-3b-instruct-q4_k_m.gguf"
+
+# 2. 用 Modelfile 导入（文件在项目里：local-model/Modelfile）
+ollama create qwen2.5:3b -f local-model/Modelfile
+```
+
+> `Modelfile` 里的 `FROM` 是绝对路径，换电脑后需要改成本机 GGUF 的实际位置。
+> 导入后 `E:\dev-cache\ollama\gguf\` 里那份原始 GGUF 已冗余（权重已复制进 `blobs`），可以删掉省 2GB。
+
+**运行测试**
+
+```powershell
+ollama list                       # 看已装模型
+ollama run qwen2.5:3b "你好"       # 命令行对话
+```
+
+> 首次调用要等约 76 秒（把 2GB 权重读进显存），之后每句 0.2~0.6 秒。
+
+## 8. 大模型选型与成本（DeepSeek）
+
+**这个 Key 实际可用的模型只有两个：**
+
+```
+deepseek-flash     便宜，支持图像理解
+deepseek-v4-pro    更强更贵，不支持图像理解
+```
+
+`deepseek-chat` **不在**可用列表里——它是保留的旧别名，能跑通但路由到哪个模型没有保证。已把 `.env` 改成正式名字 `deepseek-flash`。
+
+**价格（元 / 百万 tokens，2026-10 官网截图）**
+
+| | flash 空闲 | flash 高峰 | v4-pro 空闲 | v4-pro 高峰 |
+| --- | --- | --- | --- | --- |
+| 输入（缓存命中） | 0.02 | 0.04 | 0.15 | 0.30 |
+| 输入（缓存未命中） | 1 | 2 | 4.5 | 9.0 |
+| 输出 | 4 | 8 | 13.5 | 27.0 |
+
+**三个省钱要点**
+
+1. **高峰 / 空闲差价一倍** —— 调试尽量避开白天工作时段。
+2. **缓存命中便宜 50 倍**（0.02 vs 1）—— 智能体每次调用都要重发 system 提示词、工具清单和历史对话，**把不变的内容放在消息前面**，这部分费用降到 1/50。这是项目一最重要的成本优化点。
+3. **上下文 1M / 输出上限 384K** —— 上下文长度完全不是瓶颈，token 成本才是。工具返回的数据要做截断或摘要，别把整张表塞进去。
+
+**实测花销**：4 次调用合计 73 输入 + 82 输出 token ≈ **0.0004 元**（flash、空闲时段）。**10 元够做完整个项目。**
+
+## 9. 本地 vs 云端实测对比
+
+同一组问题分别问本地 `qwen2.5:3b` 与云端 `deepseek-flash`（脚本：`compare_local_vs_api.py`）：
+
+| 问题 | 本地 | 云端 |
+| --- | --- | --- |
+| 用一句话介绍你自己 | 0.63 秒 / 34+42 tokens | 0.82 秒 / 9+31 tokens |
+| 番茄结果期适宜土壤湿度 | 0.24 秒 / 51+14 tokens | 0.54 秒 / 22+12 tokens |
+| **平均** | **0.44 秒（免费）** | **0.68 秒（计费）** |
+
+**三个反直觉的发现**
+
+1. **本地比云端快。** 权重已在显存时推理不经过网络；云端要打包 → 传输 → 排队 → 返回。**真正慢的是首次加载（76 秒）**——所以本地模型适合连续调试，不适合"问一句关一次"。
+2. **质量差距明显。** 本地 3B 在"介绍你自己"那句里生成了"我叫你一声'wen'"这种胡话；云端表达干净。**事实性问题上 3B 够用，需要流畅表达时才露怯。**
+3. **token 数不能跨厂商比较。** 同一句中文，Qwen 分词器算 34 个 token，DeepSeek 算 9 个。只能在同一家服务商内部比较才有意义。
+
+**结论**：开发调试用本地（省钱、可离线、随便刷），正式演示用云端（质量稳）。取舍的不是"快慢"，而是"**质量 vs 成本**"和"**能不能离线**"。
