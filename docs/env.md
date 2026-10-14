@@ -23,10 +23,11 @@
 | Node.js | v24.21.0 | 项目一前端用 |
 | npm | 11.19.0 | |
 | VS Code | 1.141.0 | |
+| Docker Desktop | 29.8.2 | `E:\Docker\Docker`（详见第 10 节） |
 
 VS Code 插件：`ms-python.python`、`ms-python.vscode-pylance`、`ms-toolsai.jupyter`（另自动带入 6 个依赖插件，如 debugpy、jupyter-renderers）。
 
-未安装、后续需要：Docker Desktop。
+开发环境所需的工具（Python / uv / Git / Node / VS Code / Docker / Ollama）已全部就位。
 
 ## 3. 环境变量（用户级，已配置）
 
@@ -124,6 +125,14 @@ ollama run qwen2.5:3b "你好"       # 命令行对话
 
 > 首次调用要等约 76 秒（把 2GB 权重读进显存），之后每句 0.2~0.6 秒。
 
+**已关闭自动更新**
+
+Ollama 的 Windows 应用会自动下载更新包并留存在本地。已在它的设置里关掉：
+
+- 设置存放在 `%LOCALAPPDATA%\Ollama\db.sqlite` 的 `settings` 表
+- 字段 `auto_update_enabled` 由 `1` 改为 `0`（**改动前已备份为 `db.sqlite.bak`**）
+- 改数据库前需先退出 `ollama app.exe` 与 `ollama.exe`，改完再启动
+
 ## 8. 大模型选型与成本（DeepSeek）
 
 **这个 Key 实际可用的模型只有两个：**
@@ -168,3 +177,70 @@ deepseek-v4-pro    更强更贵，不支持图像理解
 3. **token 数不能跨厂商比较。** 同一句中文，Qwen 分词器算 34 个 token，DeepSeek 算 9 个。只能在同一家服务商内部比较才有意义。
 
 **结论**：开发调试用本地（省钱、可离线、随便刷），正式演示用云端（质量稳）。取舍的不是"快慢"，而是"**质量 vs 成本**"和"**能不能离线**"。
+
+## 10. Docker 与 WSL2
+
+| 项目 | 值 |
+| --- | --- |
+| Docker Desktop | 29.8.2 |
+| 主程序位置 | `E:\Docker\Docker`（3354 MB） |
+| CLI 插件位置 | `C:\Program Files\Docker\cli-plugins`（664 MB） |
+| 镜像数据位置 | `E:\Docker\data`（`disk\docker_data.vhdx`） |
+| WSL2 内核 | `6.18.40.1-microsoft-standard-WSL2` |
+| WSL 发行版 | `docker-desktop`（VERSION 2） |
+
+**WSL2 是前置条件，而且必须重启**
+
+Docker 容器依赖 Linux 内核，Windows 上要先启用两项可选功能：
+
+```powershell
+dism /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+dism /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+# ——重启电脑——
+wsl --update
+wsl --set-default-version 2
+```
+
+> DISM 返回 **3010** 代表"操作成功，但需要重启"。不重启的话 `wsl --update` 会失败。
+> 验证 WSL2 是否真的生效：`docker info` 里的 `Kernel Version` 应含 `WSL2`，且 `wsl -l -v` 应显示发行版 `VERSION 2`。
+
+**装到 E 盘的两个关键参数**
+
+```powershell
+DockerDesktopInstaller.exe install --accept-license --backend=wsl-2 `
+  --installation-dir=E:\Docker\Docker `
+  --wsl-default-data-root=E:\Docker\data
+```
+
+`--wsl-default-data-root` 尤其重要：不加的话镜像数据会以 vhdx 形式落在系统盘，并随拉取的镜像持续增长。实测加了之后数据在 `E:\Docker\data\disk\docker_data.vhdx`。
+
+> 另注：若安装时报空间不足，多半是安装程序要把 3.3GB 临时文件解压到 `%TEMP%`。把该进程的 `$env:TEMP` / `$env:TMP` 临时指向空间充足的盘即可——大型安装程序卡在空间检查时都能用这招。
+
+**国内镜像加速器（2026-10 实测）**
+
+Docker Hub 直连超时。测了 11 个国内站点，**只有 4 个可用**：
+
+| 站点 | 地址 |
+| --- | --- |
+| 1ms.run | `https://docker.1ms.run` |
+| daocloud | `https://docker.m.daocloud.io` |
+| 1panel | `https://docker.1panel.live` |
+| 轩辕 | `https://docker.xuanyuan.me` |
+
+> 中科大、网易163、腾讯云、dockerpull、rainbond 均已停服或不可达；南京大学返回 403。
+
+配置写在 `%USERPROFILE%\.docker\daemon.json` 的 `registry-mirrors` 数组里。两个坑：
+
+- **改完必须重启 Docker Desktop**，它不热加载 `daemon.json`
+- 即使配了加速器，**第一次拉取仍可能报 `short read: unexpected EOF`，重试即可**（实测第二次成功）
+
+**常用命令**
+
+```powershell
+docker run --rm hello-world                                     # 验证引擎
+docker images                                                   # 镜像列表（模板）
+docker ps -a                                                    # 容器列表（实例）
+docker run -d --name mosquitto -p 1883:1883 eclipse-mosquitto   # 起 MQTT broker
+```
+
+概念上记住三层：**Docker Desktop（工具）→ 镜像（模板）→ 容器（实例）**。项目里真正用到的是最外层那层容器。
